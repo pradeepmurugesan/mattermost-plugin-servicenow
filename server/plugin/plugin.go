@@ -1,8 +1,8 @@
-package main
+package plugin
 
 import (
-	"fmt"
-	"net/http"
+	"github.com/mattermost/mattermost-server/model"
+	"github.com/pkg/errors"
 	"sync"
 
 	"github.com/mattermost/mattermost-server/plugin"
@@ -12,17 +12,29 @@ import (
 type Plugin struct {
 	plugin.MattermostPlugin
 
+	BotUserID string
 	// configurationLock synchronizes access to the configuration.
 	configurationLock sync.RWMutex
-
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
 }
 
-// ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
-func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, world!")
-}
+//OnActivate hook to be called after the plugin activation
+func (p *Plugin) OnActivate() error {
 
-// See https://developers.mattermost.com/extend/plugins/server/reference/
+	botID, err := p.Helpers.EnsureBot(&model.Bot{
+		Username:    "service-now",
+		DisplayName: "Service Now",
+		Description: "Created by the Service Now plugin.",
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "failed to ensure service-now bot")
+	}
+
+	p.BotUserID = botID
+
+	return nil
+
+}

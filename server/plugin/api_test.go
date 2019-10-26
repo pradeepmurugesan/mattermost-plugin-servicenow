@@ -1,4 +1,4 @@
-package main
+package plugin
 
 import (
 	"io/ioutil"
@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestServeHTTP(t *testing.T) {
+func TestApi(t *testing.T) {
 	assert := assert.New(t)
 	plugin := Plugin{}
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r := httptest.NewRequest(http.MethodGet, "/hello", nil)
 
 	plugin.ServeHTTP(nil, w, r)
 
@@ -23,5 +23,5 @@ func TestServeHTTP(t *testing.T) {
 	assert.Nil(err)
 	bodyString := string(bodyBytes)
 
-	assert.Equal("Hello, world!", bodyString)
+	assert.Equal("Hello, world!!!!", bodyString)
 }
