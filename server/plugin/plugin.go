@@ -23,6 +23,10 @@ type Plugin struct {
 //OnActivate hook to be called after the plugin activation
 func (p *Plugin) OnActivate() error {
 
+	if err := p.API.RegisterCommand(getCommand()); err != nil {
+		return errors.Wrap(err, "failed to register servicenow command")
+	}
+
 	botID, err := p.Helpers.EnsureBot(&model.Bot{
 		Username:    "service-now",
 		DisplayName: "Service Now",
