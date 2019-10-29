@@ -7,9 +7,10 @@ import (
 // PluginContext context of the plugin
 type PluginContext struct {
 	API       plugin.API
-	BotUserId string
+	BotUserID string
 }
 
-func (p *PluginContext) SetApi(api plugin.API) {
+// SetAPI sets the api
+func (p *PluginContext) SetAPI(api plugin.API) {
 	p.API = api
 }

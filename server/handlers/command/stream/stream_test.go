@@ -17,20 +17,20 @@ func TestStreamCommand(t *testing.T) {
 var _ = Describe("Stream", func() {
 
 	var (
-		pluginApiMock *plugintest.API
+		pluginAPIMock *plugintest.API
 		pluginContext *models.PluginContext
 	)
 
 	BeforeEach(func() {
-		pluginApiMock = &plugintest.API{}
-		pluginContext = &models.PluginContext{BotUserId: "some-userId"}
-		pluginContext.SetApi(pluginApiMock)
+		pluginAPIMock = &plugintest.API{}
+		pluginContext = &models.PluginContext{BotUserID: "some-userId"}
+		pluginContext.SetAPI(pluginAPIMock)
 	})
-	const MockChannelId = "mock-channel-id"
+	const MockChannelID = "mock-channel-id"
 
 	It("should throw the error in case of KVGet failure", func() {
 
-		pluginApiMock.On("KVGet", models.ServiceNowSubscribedChannel).
+		pluginAPIMock.On("KVGet", models.ServiceNowSubscribedChannel).
 			Return(nil, &model.AppError{Message: "Error from the mock"})
 
 		_, err := Execute(pluginContext, &model.CommandArgs{})
@@ -40,7 +40,7 @@ var _ = Describe("Stream", func() {
 
 	It("should throw error in case stream is already subscribed", func() {
 
-		pluginApiMock.On("KVGet", models.ServiceNowSubscribedChannel).
+		pluginAPIMock.On("KVGet", models.ServiceNowSubscribedChannel).
 			Return([]byte("abcd123"), nil)
 
 		_, err := Execute(pluginContext, &model.CommandArgs{})
@@ -50,26 +50,26 @@ var _ = Describe("Stream", func() {
 
 	It("should throw error in case GetChannel fails", func() {
 
-		pluginApiMock.On("KVGet", models.ServiceNowSubscribedChannel).
+		pluginAPIMock.On("KVGet", models.ServiceNowSubscribedChannel).
 			Return(nil, nil)
-		pluginApiMock.On("GetChannel", MockChannelId).
+		pluginAPIMock.On("GetChannel", MockChannelID).
 			Return(nil, &model.AppError{Message: "Error from the GetChannel mock"})
 
-		_, err := Execute(pluginContext, &model.CommandArgs{ChannelId: MockChannelId})
+		_, err := Execute(pluginContext, &model.CommandArgs{ChannelId: MockChannelID})
 
 		Expect(err.Message).To(Equal("Error from the GetChannel mock"))
 	})
 
 	It("should subscribe to the channel from the command args", func() {
 
-		pluginApiMock.On("KVGet", models.ServiceNowSubscribedChannel).
+		pluginAPIMock.On("KVGet", models.ServiceNowSubscribedChannel).
 			Return(nil, nil)
-		pluginApiMock.On("GetChannel", MockChannelId).
-			Return(&model.Channel{Id: MockChannelId, Name: "mock-channel-name"}, nil)
-		pluginApiMock.On("KVSet", models.ServiceNowSubscribedChannel, []byte(MockChannelId)).
+		pluginAPIMock.On("GetChannel", MockChannelID).
+			Return(&model.Channel{Id: MockChannelID, Name: "mock-channel-name"}, nil)
+		pluginAPIMock.On("KVSet", models.ServiceNowSubscribedChannel, []byte(MockChannelID)).
 			Return(nil, nil)
 
-		result, err := Execute(pluginContext, &model.CommandArgs{ChannelId: MockChannelId})
+		result, err := Execute(pluginContext, &model.CommandArgs{ChannelId: MockChannelID})
 
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal("subscribed for the now incident updates to the channel: mock-channel-name"))

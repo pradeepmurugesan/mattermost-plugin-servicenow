@@ -6,15 +6,16 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 )
 
+// Execute stream command
 func Execute(ctx *models.PluginContext, args *model.CommandArgs) (string, *models.Error) {
 
-	subscribedChannelId, err := ctx.API.KVGet(models.ServiceNowSubscribedChannel)
+	subscribedChannelID, err := ctx.API.KVGet(models.ServiceNowSubscribedChannel)
 
 	if err != nil {
 		return "", &models.Error{Message: err.Message}
 	}
 
-	if subscribedChannelId != nil {
+	if subscribedChannelID != nil {
 		return "", &models.Error{Message: "Already subscribed to service now stream"}
 	}
 
