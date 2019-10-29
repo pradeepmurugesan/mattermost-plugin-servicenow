@@ -14,7 +14,6 @@ func Execute(ctx *models.PluginContext, args *model.CommandArgs) (string, *model
 		return "", &models.Error{Message: err.Message}
 	}
 
-
 	if subscribedChannelId != nil {
 		return "", &models.Error{Message: "Already subscribed to service now stream"}
 	}
