@@ -3,6 +3,9 @@ package plugin
 import (
 	"fmt"
 	"github.com/mattermost/mattermost-plugin-servicenow/server/handlers/command/hello"
+	"github.com/mattermost/mattermost-plugin-servicenow/server/handlers/command/stream"
+	"github.com/mattermost/mattermost-plugin-servicenow/server/models"
+	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 	"strings"
@@ -46,9 +49,23 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		result := hello.Execute()
 		p.postCommandResponse(args, fmt.Sprintf(result))
 		return &model.CommandResponse{}, nil
+
+	case "stream":
+		result, err := stream.Execute(&models.PluginContext{API: p.API}, args)
+		if err != nil {
+			mlog.Error(err.Message)
+			p.postErrorMessage(args, err)
+			return nil, &model.AppError{Message: err.Message}
+		}
+		p.postCommandResponse(args, fmt.Sprintf(result))
+		return &model.CommandResponse{}, nil
 	}
 
 	p.postCommandResponse(args, fmt.Sprintf("Unknown action %v", action))
 
 	return &model.CommandResponse{}, nil
+}
+
+func (p *Plugin) postErrorMessage(args *model.CommandArgs, err *models.Error) {
+	p.postCommandResponse(args, err.Message)
 }

@@ -9,6 +9,8 @@ require (
 	github.com/hashicorp/go-plugin v1.0.1 // indirect
 	github.com/mattermost/go-i18n v1.11.0 // indirect
 	github.com/mattermost/mattermost-server v5.12.0+incompatible
+	github.com/onsi/ginkgo v1.10.2
+	github.com/onsi/gomega v1.7.0
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.3.0
