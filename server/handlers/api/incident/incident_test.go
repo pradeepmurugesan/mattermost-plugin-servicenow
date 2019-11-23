@@ -44,14 +44,14 @@ var _ = Describe("Incident", func() {
 		Expect(err.Message).To(Equal("Error from the mock"))
 	})
 
-	It("should throw an error in case of subscribedChannelId is nil", func() {
+	It("should throw an error in case of subscribedChannelID is nil", func() {
 
 		pluginAPIMock.On("KVGet", models.ServiceNowSubscribedChannel).
 			Return(nil, nil)
 
 		err := PublishIncident(httptest.NewRecorder(), mockHTTPRequst, *pluginContext)
 
-		Expect(err.Message).To(Equal("ServiceNow stream subscribedChannelId is nil"))
+		Expect(err.Message).To(Equal("ServiceNow stream subscribedChannelID is nil"))
 	})
 
 	It("should throw an error in case of invalid json", func() {
