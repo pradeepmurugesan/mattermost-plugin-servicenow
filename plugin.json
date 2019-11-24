@@ -17,6 +17,26 @@
     "settings_schema": {
         "header": "",
         "footer": "",
-        "settings": []
+        "settings": [
+            {
+                "key": "ApplicationID",
+                "display_name": "Service now Oauth Application ID  / Client ID",
+                "type": "text",
+                "help_text": "The Application ID of the OAuth app registered with Service now"
+            },
+            {
+                "key": "ClientSecret",
+                "display_name": "Service now Oauth Application Client Secret ",
+                "type": "text",
+                "help_text": "The ClientSecret of the OAuth app registered with Service now"
+            },
+            {
+                "key": "ServiceNowURL",
+                "display_name": "Service now instance Url",
+                "type": "text",
+                "help_text": "url of Service now instance"
+            }
+
+        ]
     }
 }

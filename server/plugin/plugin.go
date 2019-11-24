@@ -1,12 +1,31 @@
 package plugin
 
 import (
+	"fmt"
 	"github.com/mattermost/mattermost-server/model"
-	"github.com/pkg/errors"
-	"sync"
-
 	"github.com/mattermost/mattermost-server/plugin"
+	"github.com/pkg/errors"
+	"golang.org/x/oauth2"
+	"sync"
 )
+
+//GetOAuthConfig returns the oauth config
+func (p *Plugin) GetOAuthConfig() *oauth2.Config {
+
+	config := p.getConfiguration()
+	apiConfig := p.API.GetConfig()
+
+	redirectURL := fmt.Sprintf("%s/plugins/mattermost-plugin-servicenow/oauth/complete", *apiConfig.ServiceSettings.SiteURL)
+	return &oauth2.Config{
+		ClientID:     config.ApplicationID,
+		ClientSecret: config.ClientSecret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  fmt.Sprintf("%s/oauth_auth.do", config.ServiceNowURL),
+			TokenURL: fmt.Sprintf("%s/oauth_token.do", config.ServiceNowURL),
+		},
+		RedirectURL: redirectURL,
+	}
+}
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
 type Plugin struct {

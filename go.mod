@@ -14,6 +14,7 @@ require (
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.3.0
+	golang.org/x/oauth2 v0.0.0-20190319182350-c85d3e98c914
 )
 
 replace (

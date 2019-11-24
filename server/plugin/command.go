@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"github.com/mattermost/mattermost-plugin-servicenow/server/handlers/command/hello"
+	"github.com/mattermost/mattermost-plugin-servicenow/server/handlers/command/oauth/connect"
 	"github.com/mattermost/mattermost-plugin-servicenow/server/handlers/command/stream"
 	"github.com/mattermost/mattermost-plugin-servicenow/server/models"
 	"github.com/mattermost/mattermost-server/mlog"
@@ -58,6 +59,11 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			return nil, &model.AppError{Message: err.Message}
 		}
 		p.postCommandResponse(args, fmt.Sprintf(result))
+		return &model.CommandResponse{}, nil
+
+	case "connect":
+		response := connect.Execute(p.API.GetConfig())
+		p.postCommandResponse(args, response)
 		return &model.CommandResponse{}, nil
 	}
 
