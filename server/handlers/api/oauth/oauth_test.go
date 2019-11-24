@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/mattermost/mattermost-plugin-servicenow/server/models"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin/plugintest"
@@ -9,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/oauth2"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,7 +21,37 @@ func TestOauth(t *testing.T) {
 	RunSpecs(t, "Oauth")
 }
 
+func setUpTestOauthServer() *httptest.Server {
 
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.String() != "/oauth_token.do" {
+			Fail(fmt.Sprintf("Unexpected exchange request URL %q", r.URL))
+		}
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			Fail(fmt.Sprintf("Failed reading request body: %s.", err))
+		}
+		if string(body) != "code=hello&grant_type=authorization_code&redirect_uri=REDIRECT_URL" {
+			Fail(fmt.Sprintf("Unexpected exchange payload; got %q", body))
+		}
+		w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
+		w.Write([]byte("access_token=some-token&scope=user&token_type=bearer"))
+	}))
+
+	return ts
+}
+
+func getOauthConfig(url string) *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     "client",
+		ClientSecret: "secret",
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  fmt.Sprintf("%s/oauth_auth.do", url),
+			TokenURL: fmt.Sprintf("%s/oauth_token.do", url),
+		},
+		RedirectURL: "REDIRECT_URL",
+	}
+}
 var _ = Describe("Oauth", func() {
 
 	var (
@@ -31,15 +63,7 @@ var _ = Describe("Oauth", func() {
 
 	BeforeEach(func() {
 		pluginAPIMock = &plugintest.API{}
-		oauthConfig = &oauth2.Config{
-			ClientID:     "client",
-			ClientSecret: "secret",
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  "http://localhost/oauth_auth.do",
-				TokenURL: "http://localhost/oauth_token.do",
-			},
-			RedirectURL: "http://localhost/oauth_redirect.do",
-		}
+		oauthConfig = getOauthConfig("http://localhost")
 		pluginContext = &models.PluginContext{BotUserID: "some-userId", OauthConfig: *oauthConfig, API: pluginAPIMock}
 
 	})
@@ -145,6 +169,25 @@ var _ = Describe("Oauth", func() {
 
 			Expect(response.Code).To(Equal(http.StatusUnauthorized))
 			Expect(response.Body.String()).To(Equal("Not authorized, incorrect user\n"))
+
+		})
+
+		It("should exchange the code for token", func() {
+
+			ts := setUpTestOauthServer()
+			oauthConfig = getOauthConfig(ts.URL)
+			pluginContext = &models.PluginContext{BotUserID: "some-userId", OauthConfig: *oauthConfig, API: pluginAPIMock}
+
+
+			mockHTTPRequest = httptest.NewRequest("GET", "/oauth/complete?code=hello&state=123_some-id", bytes.NewReader([]byte("{}")))
+			mockHTTPRequest.Header.Set("Mattermost-User-ID", "some-id")
+			response := httptest.NewRecorder()
+			pluginAPIMock.On("KVGet", "123_some-id").Return([]byte("123_some-id"), nil)
+			pluginAPIMock.On("KVDelete", "123_some-id").Return(nil)
+
+			CompleteAuthentication(response, mockHTTPRequest, pluginContext)
+
+			Expect(response.Code).To(Equal(http.StatusOK))
 
 		})
 	})
