@@ -2,11 +2,14 @@ package oauth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/mattermost/mattermost-plugin-servicenow/server/models"
 	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
 	"golang.org/x/oauth2"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -30,8 +33,9 @@ func CompleteAuthentication(w http.ResponseWriter, r *http.Request, p *models.Pl
 
 	state := r.URL.Query().Get("state")
 
-	if storedState, err := p.API.KVGet(state); err != nil {
-		fmt.Println(err.Error())
+	storedState, e := p.API.KVGet(state)
+	if e != nil {
+		mlog.Error(e.Error())
 		http.Error(w, "missing stored state", http.StatusBadRequest)
 		return
 	} else if string(storedState) != state {
@@ -50,13 +54,57 @@ func CompleteAuthentication(w http.ResponseWriter, r *http.Request, p *models.Pl
 
 	tok, err := conf.Exchange(context.Background(), code)
 	if err != nil {
-		fmt.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	mlog.Info(fmt.Sprintf("successfully retrieved token with expiry %s", tok.Expiry))
+	client := &http.Client{}
 
+	req, err := http.NewRequest("GET", p.UserInfoEndpoint, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %v", tok.AccessToken))
+	res, err := client.Do(req)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	body, err := ioutil.ReadAll(io.LimitReader(res.Body, 1<<20))
+
+	user := &models.UserInfo{}
+	err = json.Unmarshal(body, user)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tokenBytes, err := json.Marshal(tok)
+	p.API.KVSet(models.NowTokenKeyPrefix+userID, tokenBytes)
+
+	p.API.KVSet(models.NowUserIDPrefix+user.Result.ID, []byte(userID))
+
+	html := `
+		<!DOCTYPE html>
+		<html>
+			<head>
+				<script>
+					window.close();
+				</script>
+			</head>
+			<body>
+				<p>Completed connecting to ServiceNow. Please close this window.</p>
+			</body>
+		</html>
+		`
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(html))
 }
 
 // Authorize redirects to the authorize endpoint

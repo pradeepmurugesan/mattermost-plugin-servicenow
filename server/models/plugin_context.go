@@ -7,9 +7,10 @@ import (
 
 // PluginContext context of the plugin
 type PluginContext struct {
-	API         plugin.API
-	BotUserID   string
-	OauthConfig oauth2.Config
+	API              plugin.API
+	BotUserID        string
+	OauthConfig      oauth2.Config
+	UserInfoEndpoint string
 }
 
 // SetAPI sets the api

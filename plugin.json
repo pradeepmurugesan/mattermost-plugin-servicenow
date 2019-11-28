@@ -35,6 +35,12 @@
                 "display_name": "Service now instance Url",
                 "type": "text",
                 "help_text": "url of Service now instance"
+            },
+            {
+                "key": "UserInfoEndpoint",
+                "display_name": "Endpoint to call for user details",
+                "type": "text",
+                "help_text": "user details endpoint of service now"
             }
 
         ]

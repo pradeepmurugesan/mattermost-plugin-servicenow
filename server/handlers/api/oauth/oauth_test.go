@@ -6,6 +6,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-servicenow/server/models"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin/plugintest"
+	mock2 "github.com/mattermost/mattermost-server/plugin/plugintest/mock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
@@ -41,6 +42,25 @@ func setUpTestOauthServer() *httptest.Server {
 	return ts
 }
 
+func setUpServiceNowMockServer() *httptest.Server {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.String() != "/api/me" {
+			Fail(fmt.Sprintf("Unexpected request URL %q", r.URL))
+		}
+
+		auth := r.Header.Get("Authorization")
+
+		if auth != "Bearer some-token" {
+			Fail("Unauthorized")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{\"result\":{\"id\":\"681633be04be441\",\"name\":\"admin\",\"display_name\":\"System Administrator\",\"first_name\":\"System\",\"last_name\":\"Administrator\"}}"))
+	}))
+
+	return ts
+}
 func getOauthConfig(url string) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     "client",
@@ -52,13 +72,14 @@ func getOauthConfig(url string) *oauth2.Config {
 		RedirectURL: "REDIRECT_URL",
 	}
 }
+
 var _ = Describe("Oauth", func() {
 
 	var (
-		pluginAPIMock  *plugintest.API
+		pluginAPIMock   *plugintest.API
 		pluginContext   *models.PluginContext
 		mockHTTPRequest *http.Request
-		oauthConfig *oauth2.Config
+		oauthConfig     *oauth2.Config
 	)
 
 	BeforeEach(func() {
@@ -89,7 +110,7 @@ var _ = Describe("Oauth", func() {
 
 			mockHTTPRequest.Header.Set("Mattermost-User-ID", "some-id")
 			response := httptest.NewRecorder()
-			pluginAPIMock.On("KVSet", mock.AnythingOfType("string"), mock.AnythingOfType("[]uint8") ).
+			pluginAPIMock.On("KVSet", mock.AnythingOfType("string"), mock.AnythingOfType("[]uint8")).
 				Return(nil)
 
 			Authorize(response, mockHTTPRequest, pluginContext)
@@ -106,7 +127,6 @@ var _ = Describe("Oauth", func() {
 		})
 
 		It("should throw an error in case the header doesn't contain Mattermost-User-ID", func() {
-
 
 			response := httptest.NewRecorder()
 
@@ -175,9 +195,11 @@ var _ = Describe("Oauth", func() {
 		It("should exchange the code for token", func() {
 
 			ts := setUpTestOauthServer()
+			sn := setUpServiceNowMockServer()
 			oauthConfig = getOauthConfig(ts.URL)
-			pluginContext = &models.PluginContext{BotUserID: "some-userId", OauthConfig: *oauthConfig, API: pluginAPIMock}
-
+			pluginContext = &models.PluginContext{BotUserID: "some-userId", OauthConfig: *oauthConfig, API: pluginAPIMock, UserInfoEndpoint: fmt.Sprintf("%s/api/me", sn.URL)}
+			pluginAPIMock.On("KVSet", models.NowTokenKeyPrefix+"some-id", mock2.AnythingOfType("[]uint8")).Return(nil)
+			pluginAPIMock.On("KVSet", models.NowUserIDPrefix+"681633be04be441", mock2.AnythingOfType("[]uint8")).Return(nil)
 
 			mockHTTPRequest = httptest.NewRequest("GET", "/oauth/complete?code=hello&state=123_some-id", bytes.NewReader([]byte("{}")))
 			mockHTTPRequest.Header.Set("Mattermost-User-ID", "some-id")
@@ -188,6 +210,7 @@ var _ = Describe("Oauth", func() {
 			CompleteAuthentication(response, mockHTTPRequest, pluginContext)
 
 			Expect(response.Code).To(Equal(http.StatusOK))
+			Expect(response.Body.String()).To(ContainSubstring("Completed connecting to ServiceNow."))
 
 		})
 	})
